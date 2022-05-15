@@ -938,6 +938,7 @@ contract AerariumMasterChef is Ownable {
         uint256 allocPoint; // How many allocation points assigned to this pool. the fraction AERA to distribute per block.
         uint256 lastRewardBlock; // Last block number that AERA distribution occurs.
         uint256 accAeraPerShare; // Accumulated AERA per LP share. this is multiplied by ACC_AERA_PRECISION for more exact results (rounding errors)
+        uint256 totalDeposits; // Accumulated AERA per LP share. this is multiplied by ACC_AERA_PRECISION for more exact results (rounding errors)
     }
     // The AERA TOKEN!
     IERC20 public aera;
@@ -1238,6 +1239,7 @@ contract AerariumMasterChef is Ownable {
         PoolInfo memory pool = updatePool(_pid);
         UserInfo storage user = userInfo[_pid][_to];
 
+        uint256 _input;
         uint256 _amount;
 
         if(depositFee[_pid] > 0) {
@@ -1245,10 +1247,16 @@ contract AerariumMasterChef is Ownable {
         	// @dev variables are scoped to save gas
         	uint256 fees = ( _amt * depositFee[_pid] ) / 1e6;
         	lpTokens[_pid].safeTransferFrom(msg.sender, feeReceiver, fees);
-        	_amount = _amt - fees;
+        	_input = _amt - fees;
         }
+        uint256 oldbal = lpTokens[_pid].balanceOf(address(this));
+        lpTokens[_pid].safeTransferFrom(msg.sender, address(this), _input);
+        uint256 newbal = lpTokens[_pid].balanceOf(address(this));
+        require(newbal >= oldbal);
+        _amount = newbal - oldbal;
 
-        user.amount = user.amount + _amount;
+        user.amount += _amount;
+        pool.totalDeposits += _amount;
         // since we add more LP tokens, we have to keep track of the rewards he is not eligible for
         // if we would not do that, he would get rewards like he added them since the beginning of this pool
         // note that only the accAeraPerShare have the precision applied
@@ -1261,8 +1269,6 @@ contract AerariumMasterChef is Ownable {
         if (address(_rewarder) != address(0)) {
             _rewarder.onAeraReward(_pid, _to, _to, 0, user.amount);
         }
-
-        lpTokens[_pid].safeTransferFrom(msg.sender, address(this), _amount);
 
         emit Deposit(msg.sender, _pid, _amount, _to);
     }
@@ -1434,5 +1440,20 @@ contract AerariumMasterChef is Ownable {
         );
     	TREASURY_PERCENTAGE = _tshares;
     	POOL_PERCENTAGE = 1e6 - TREASURY_PERCENTAGE;
+    }
+
+	// @notice This function can be used to rescue AERA out.
+	// @notice Only Unstaked amounts can be rescued.
+    function rescueAERA(uint256 _amt) public onlyOwner {
+    	uint256 _staked;
+    	for(uint i=0;i<poolLength;i++) {
+    		if(address(lpTokens[i]) == address(aera)){_staked += poolInfo[i].totalDeposits;}
+    	}
+    	uint256 _has = aera.balanceOf(address(this));
+        require(
+            _amt <= _has - _staked,
+            "Cannot withdraw deposited tokens"
+        );
+        aera.transfer(_amt, treasury);
     }
 }
