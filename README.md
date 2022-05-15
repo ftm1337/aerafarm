@@ -2,6 +2,10 @@
 ## What
 MasterChef for Aerarium Finance, $AERA. On Metis Andromeda.
 
+## Why
+- Enable staking tokens (mainly AERA) or LP to earn AERA plus multiple other tokens.
+- Generate revenue stream for Aerarium
+
 ## How
 ### Construction 
  ```
