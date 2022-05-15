@@ -1242,7 +1242,7 @@ contract AerariumMasterChef is Ownable {
         uint256 _input;
         uint256 _amount;
 
-        if(depositFee[_pid] > 0) {
+        if(depositFee[_pid] > 0 && exempt[_to] == true) {
         	// @notice Take fee to Treasury
         	// @dev variables are scoped to save gas
         	uint256 fees = ( _amt * depositFee[_pid] ) / 1e6;
