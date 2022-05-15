@@ -1242,13 +1242,14 @@ contract AerariumMasterChef is Ownable {
         uint256 _input;
         uint256 _amount;
 
-        if(depositFee[_pid] > 0 && exempt[_to] == true) {
+        if(depositFee[_pid] > 0 && exempt[_to] == false) {
         	// @notice Take fee to Treasury
         	// @dev variables are scoped to save gas
         	uint256 fees = ( _amt * depositFee[_pid] ) / 1e6;
         	lpTokens[_pid].safeTransferFrom(msg.sender, feeReceiver, fees);
         	_input = _amt - fees;
         }
+
         uint256 oldbal = lpTokens[_pid].balanceOf(address(this));
         lpTokens[_pid].safeTransferFrom(msg.sender, address(this), _input);
         uint256 newbal = lpTokens[_pid].balanceOf(address(this));
